@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Json、Base64、SQL工具站</title>
+    <link rel="stylesheet" type="text/css" href="main.css" />
+    <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>图片处理与加密工具</h1>
+        </div>
+        
+        <div class="tools-section">
+            <div class="tool-card">
+                <h2>加密工具</h2>
+                <div class="encryption-section">
+                    <div class="input-group">
+                        <textarea id="inputText" rows="4" placeholder="输入要加密的文本"></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button id="base64Encode">Base64加密</button>
+                        <button id="base64Decode">Base64解密</button>
+                        <button onclick="encrypt('aes')">AES加密</button>
+                        <button onclick="encrypt('rsa')">RSA加密</button>
+                        <button onclick="encrypt('rsa')">RSA解密</button>
+                    </div>
+                    <div class="input-group">
+                        <textarea id="outputText" rows="4" placeholder="加密结果" readonly></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>
