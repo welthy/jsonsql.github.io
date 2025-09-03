@@ -1,39 +1,180 @@
-<!DOCTYPE html>
-<html lang="zh">
+<!doctype html>
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>Json、Base64、SQL工具站</title>
-    <link rel="stylesheet" type="text/css" href="main.css" />
-    <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IT Tools Clone</title>
+    <meta name="description" content="一个模仿 it-tools.tech 布局与样式的工具集合页面。">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🛠️</text></svg>">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>图片处理与加密工具</h1>
-        </div>
-        
-        <div class="tools-section">
-            <div class="tool-card">
-                <h2>加密工具</h2>
-                <div class="encryption-section">
-                    <div class="input-group">
-                        <textarea id="inputText" rows="4" placeholder="输入要加密的文本"></textarea>
-                    </div>
-                    <div class="button-group">
-                        <button id="base64Encode">Base64加密</button>
-                        <button id="base64Decode">Base64解密</button>
-                        <button onclick="encrypt('aes')">AES加密</button>
-                        <button onclick="encrypt('rsa')">RSA加密</button>
-                        <button onclick="encrypt('rsa')">RSA解密</button>
-                    </div>
-                    <div class="input-group">
-                        <textarea id="outputText" rows="4" placeholder="加密结果" readonly></textarea>
-                    </div>
-                </div>
+    <div class="app" id="appRoot">
+        <header class="app-header">
+            <button class="icon-btn sidebar-toggle" id="sidebarToggle" aria-label="切换侧栏" aria-expanded="true" aria-controls="appSidebar">
+                <span class="i">☰</span>
+            </button>
+            <a class="brand" href="#" aria-label="主页">
+                <span class="brand-logo">🛠️</span>
+                <span class="brand-title">IT Tools</span>
+            </a>
+            <div class="search-wrap">
+                <input id="searchInput" class="search-input" type="search" placeholder="搜索工具… (例如：Base64, JSON, UUID)" autocomplete="off" aria-label="搜索工具">
             </div>
+            <div class="actions">
+                <button id="themeToggle" class="icon-btn" aria-label="切换主题" title="切换主题">
+                    <span class="i" id="themeIcon">🌙</span>
+                </button>
+                <a class="icon-btn" href="https://it-tools.tech/" target="_blank" rel="noreferrer" title="原站点">
+                    <span class="i">↗</span>
+                </a>
+            </div>
+        </header>
+
+        <div class="app-body">
+            <aside id="appSidebar" class="app-sidebar" aria-label="分类导航">
+                <nav class="sidebar-nav">
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">常用</div>
+                        <ul>
+                            <li><button class="chip" data-filter="all">全部</button></li>
+                            <li><button class="chip" data-filter="recent">最近</button></li>
+                            <li><button class="chip" data-filter="favorite">收藏</button></li>
+                        </ul>
+                    </div>
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">类别</div>
+                        <ul>
+                            <li><button class="chip" data-filter="text">文本</button></li>
+                            <li><button class="chip" data-filter="json">JSON</button></li>
+                            <li><button class="chip" data-filter="hash">加密/哈希</button></li>
+                            <li><button class="chip" data-filter="network">网络</button></li>
+                            <li><button class="chip" data-filter="image">图像</button></li>
+                            <li><button class="chip" data-filter="dev">开发</button></li>
+                        </ul>
+                    </div>
+                </nav>
+                <footer class="sidebar-footer">
+                    <small>构建于 HTML/CSS/JS</small>
+                </footer>
+            </aside>
+
+            <main class="app-main" id="mainContent">
+                <section class="grid" id="toolsGrid" aria-live="polite">
+                    <!-- 示例工具卡片 -->
+                    <article class="tool-card" data-tags="text base64 encode decode" data-category="text">
+                        <div class="card-head">
+                            <h3 class="card-title">Base64 编解码</h3>
+                            <button class="fav-btn" aria-label="收藏">☆</button>
+                        </div>
+                        <p class="card-desc">对文本进行 Base64 编码与解码。</p>
+                        <div class="card-actions">
+                            <button class="btn btn-primary">打开</button>
+                        </div>
+                    </article>
+
+                    <article class="tool-card" data-tags="json format validate linter" data-category="json">
+                        <div class="card-head">
+                            <h3 class="card-title">JSON 格式化/校验</h3>
+                            <button class="fav-btn" aria-label="收藏">☆</button>
+                        </div>
+                        <p class="card-desc">美化、压缩并校验 JSON 数据结构。</p>
+                        <div class="card-actions">
+                            <button class="btn btn-primary">打开</button>
+                        </div>
+                    </article>
+
+                    <article class="tool-card" data-tags="uuid generator id" data-category="dev">
+                        <div class="card-head">
+                            <h3 class="card-title">UUID 生成器</h3>
+                            <button class="fav-btn" aria-label="收藏">☆</button>
+                        </div>
+                        <p class="card-desc">快速生成符合规范的 UUID。</p>
+                        <div class="card-actions">
+                            <button class="btn btn-primary">打开</button>
+                        </div>
+                    </article>
+
+                    <article class="tool-card" data-tags="hash sha256 md5 crypto" data-category="hash">
+                        <div class="card-head">
+                            <h3 class="card-title">哈希计算器</h3>
+                            <button class="fav-btn" aria-label="收藏">☆</button>
+                        </div>
+                        <p class="card-desc">计算 SHA-256、MD5 等摘要。</p>
+                        <div class="card-actions">
+                            <button class="btn btn-primary">打开</button>
+                        </div>
+                    </article>
+
+                    <article class="tool-card" data-tags="ip network http curl" data-category="network">
+                        <div class="card-head">
+                            <h3 class="card-title">HTTP 请求测试</h3>
+                            <button class="fav-btn" aria-label="收藏">☆</button>
+                        </div>
+                        <p class="card-desc">构造并发送 HTTP 请求，查看响应。</p>
+                        <div class="card-actions">
+                            <button class="btn btn-primary">打开</button>
+                        </div>
+                    </article>
+
+                    <article class="tool-card" data-tags="image optimize compress" data-category="image">
+                        <div class="card-head">
+                            <h3 class="card-title">图片压缩</h3>
+                            <button class="fav-btn" aria-label="收藏">☆</button>
+                        </div>
+                        <p class="card-desc">在浏览器端压缩图片体积。</p>
+                        <div class="card-actions">
+                            <button class="btn btn-primary">打开</button>
+                        </div>
+                    </article>
+
+                    <article class="tool-card" data-tags="qrcode 二维码 generator code" data-category="dev">
+                        <div class="card-head">
+                            <h3 class="card-title">二维码生成器</h3>
+                            <button class="fav-btn" aria-label="收藏">☆</button>
+                        </div>
+                        <p class="card-desc">输入文本或链接，生成二维码图片。</p>
+                        <div class="card-actions">
+                            <button class="btn btn-primary">打开</button>
+                        </div>
+                    </article>
+                </section>
+                <!-- 详情抽屉与遮罩 -->
+                <div id="detailOverlay" class="overlay" aria-hidden="true"></div>
+                <aside id="detailDrawer" class="detail-drawer" aria-hidden="true" aria-labelledby="detailTitle" role="dialog">
+                    <header class="drawer-header">
+                        <h2 id="detailTitle" class="drawer-title">工具详情</h2>
+                        <button id="detailClose" class="icon-btn" aria-label="关闭详情">
+                            <span class="i">✕</span>
+                        </button>
+                    </header>
+                    <div class="drawer-body">
+                        <p id="detailDesc" class="drawer-desc">—</p>
+                        <div class="drawer-meta" id="detailMeta"></div>
+                        <div id="detailLoading" class="drawer-loading" aria-live="polite">加载中…</div>
+                        <iframe id="detailPreview" title="工具预览" class="drawer-iframe" src="" loading="lazy"></iframe>
+                        <div class="drawer-actions">
+                            <button id="detailOpen" class="btn btn-primary">打开工具</button>
+                        </div>
+                    </div>
+                </aside>
+            </main>
         </div>
+
+        <footer class="app-footer">
+            <span>© 2025 IT Tools Clone</span>
+            <nav class="footer-links">
+                <a href="#">关于</a>
+                <a href="#">隐私</a>
+                <a href="#">反馈</a>
+            </nav>
+        </footer>
     </div>
 
     <script src="main.js"></script>
+    <noscript>需要启用 JavaScript 才能获得完整体验。</noscript>
+    
 </body>
 </html>
+
+

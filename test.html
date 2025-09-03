@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+                  const style = document.createElement('style');
+      style.innerHTML = `
+      .main-layout {
+          display: flex;
+          min-height: 80vh;
+      }
+      .sidebar {
+          width: 220px;
+          background: #fff;
+          border-right: 1px solid #e0e0e0;
+          padding: 0;
+          box-shadow: 2px 0 8px rgba(0,0,0,0.03);
+      }
+      .sidebar-section {
+          margin-bottom: 20px;
+      }
+      .sidebar-title {
+          font-weight: bold;
+          padding: 16px 20px;
+          cursor: pointer;
+          background: #f5f7fa;
+          border-bottom: 1px solid #e0e0e0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+      }
+      .sidebar-menu {
+          list-style: none;
+          margin: 0;
+          padding: 0 0 0 10px;
+          background: #fff;
+      }
+      .sidebar-menu li {
+          padding: 12px 20px;
+          cursor: pointer;
+          color: #333;
+          border-bottom: 1px solid #f0f0f0;
+          transition: background 0.2s;
+      }
+      .sidebar-menu li:hover {
+          background: #e6f7ff;
+      }
+      .arrow {
+          font-size: 12px;
+          margin-left: 8px;
+      }
+      .content-area {
+          flex: 1;
+          padding: 40px 40px 40px 40px;
+          background: #f0f2f5;
+          min-height: 80vh;
+      }
+      @media (max-width: 800px) {
+          .main-layout { flex-direction: column; }
+          .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #e0e0e0; }
+          .content-area { padding: 20px; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="main-layout">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <div
+            class="sidebar-title"
+            onclick="toggleSidebarMenu('encryptionMenu')"
+          >
+            加解密工具
+            <span class="arrow" id="arrow-encryptionMenu">&#9660;</span>
+          </div>
+          <ul class="sidebar-menu" id="encryptionMenu">
+            <li onclick="showTool('aes')">AES加解密</li>
+            <li onclick="showTool('rsa')">RSA加解密</li>
+            <li onclick="showTool('base64')">Base64编解码</li>
+          </ul>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-title" onclick="toggleSidebarMenu('otherMenu')">
+            其他工具
+            <span class="arrow" id="arrow-otherMenu">&#9654;</span>
+          </div>
+          <ul class="sidebar-menu" id="otherMenu" style="display: none">
+            <li>图片处理</li>
+            <li>SQL格式化</li>
+            <li>JSON格式化</li>
+          </ul>
+        </div>
+      </aside>
+      <main class="content-area">
+        <div id="toolContent">
+          <!-- 默认显示加解密工具 -->
+          <h2>AES加解密</h2>
+          <div class="encryption-section">
+            <div class="input-group">
+              <textarea
+                id="inputText"
+                rows="4"
+                placeholder="输入要加密的文本"
+              ></textarea>
+            </div>
+            <div class="button-group">
+              <button id="base64Encode">Base64加密</button>
+              <button id="base64Decode">Base64解密</button>
+              <button onclick="encrypt('aes')">AES加密</button>
+              <button onclick="encrypt('rsa')">RSA加密</button>
+              <button onclick="rsaDecryptAction()">RSA解密</button>
+            </div>
+            <div class="input-group">
+              <textarea
+                id="outputText"
+                rows="4"
+                placeholder="加密结果"
+                readonly
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      function toggleSidebarMenu(menuId) {
+        const menu = document.getElementById(menuId);
+        const arrow = document.getElementById("arrow-" + menuId);
+        if (menu.style.display === "none" || menu.style.display === "") {
+          menu.style.display = "block";
+          arrow.innerHTML = "&#9660;";
+        } else {
+          menu.style.display = "none";
+          arrow.innerHTML = "&#9654;";
+        }
+      }
+
+      // 工具内容切换
+      function showTool(tool) {
+        let html = "";
+        if (tool === "aes") {
+          html = `
+            <h2>AES加解密</h2>
+            <div class="encryption-section">
+                <div class="input-group">
+                    <textarea id="inputText" rows="4" placeholder="输入要加密的文本"></textarea>
+                </div>
+                <div class="button-group">
+                    <button id="base64Encode">Base64加密</button>
+                    <button id="base64Decode">Base64解密</button>
+                    <button onclick="encrypt('aes')">AES加密</button>
+                </div>
+                <div class="input-group">
+                    <textarea id="outputText" rows="4" placeholder="加密结果" readonly></textarea>
+                </div>
+            </div>
+        `;
+        } else if (tool === "rsa") {
+          html = `
+            <h2>RSA加解密</h2>
+            <div class="encryption-section">
+                <div class="input-group">
+                    <textarea id="inputText" rows="4" placeholder="输入要加密的文本"></textarea>
+                </div>
+                <div class="button-group">
+                    <button onclick="encrypt('rsa')">RSA加密</button>
+                    <button onclick="rsaDecryptAction()">RSA解密</button>
+                </div>
+                <div class="input-group">
+                    <textarea id="outputText" rows="4" placeholder="加解密结果" readonly></textarea>
+                </div>
+            </div>
+        `;
+        } else if (tool === "base64") {
+          html = `
+            <h2>Base64编解码</h2>
+            <div class="encryption-section">
+                <div class="input-group">
+                    <textarea id="inputText" rows="4" placeholder="输入要编码/解码的文本"></textarea>
+                </div>
+                <div class="button-group">
+                    <button id="base64Encode">Base64加密</button>
+                    <button id="base64Decode">Base64解密</button>
+                </div>
+                <div class="input-group">
+                    <textarea id="outputText" rows="4" placeholder="结果" readonly></textarea>
+                </div>
+            </div>
+        `;
+        } else {
+          html = `<h2>请选择工具</h2>`;
+        }
+        document.getElementById("toolContent").innerHTML = html;
+
+        // 重新绑定Base64按钮事件
+        if (document.getElementById("base64Encode")) {
+          document.getElementById("base64Encode").onclick = function () {
+            let res = base64Encode(document.getElementById("inputText").value);
+            document.getElementById("outputText").value = res;
+          };
+        }
+        if (document.getElementById("base64Decode")) {
+          document.getElementById("base64Decode").onclick = function () {
+            let res = base64Decode(document.getElementById("inputText").value);
+            document.getElementById("outputText").value = res;
+          };
+        }
+      }
+
+      // 默认展开加解密工具
+      toggleSidebarMenu("encryptionMenu");
+    </script>
+  </body>
+</html>

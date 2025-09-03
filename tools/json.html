@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>JSON 格式化/校验</title>
+    <style>
+        body { margin: 0; font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Microsoft Yahei", sans-serif; background: #0b0f19; color: #e6e8ee; }
+        .wrap { padding: 16px; display: grid; gap: 12px; }
+        textarea { width: 100%; min-height: 240px; border-radius: 10px; border: 1px solid #1b2336; background: #0f1422; color: #e6e8ee; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .row { display: flex; gap: 8px; }
+        button { height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #1b2336; background: #3b82f6; color: #fff; cursor: pointer; }
+        button.secondary { background: #111726; color: #e6e8ee; }
+        .hint { color: #a7adbd; font-size: 12px; }
+        .error { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="row">
+            <button id="btnFormat">格式化</button>
+            <button id="btnMinify" class="secondary">压缩</button>
+            <span id="status" class="hint">粘贴 JSON 内容进行处理</span>
+        </div>
+        <textarea id="jsonText" placeholder='{"hello":"world"}'></textarea>
+    </div>
+    <script>
+        const el = (id) => document.getElementById(id);
+        const text = el('jsonText');
+        const status = el('status');
+        el('btnFormat').onclick = () => {
+            try { text.value = JSON.stringify(JSON.parse(text.value), null, 2); status.textContent = '已格式化'; status.classList.remove('error'); }
+            catch (e) { status.textContent = 'JSON 解析失败: ' + e.message; status.classList.add('error'); }
+        };
+        el('btnMinify').onclick = () => {
+            try { text.value = JSON.stringify(JSON.parse(text.value)); status.textContent = '已压缩'; status.classList.remove('error'); }
+            catch (e) { status.textContent = 'JSON 解析失败: ' + e.message; status.classList.add('error'); }
+        };
+    </script>
+</body>
+</html>
+
+

@@ -1,270 +1,230 @@
-// 使用 CDN 注入的 CryptoJS（见 main.html）
-// 移除直接从 node_modules 的浏览器端导入
+/* 交互逻辑：搜索过滤、收藏、主题切换、侧栏折叠、状态保持 */
+(function () {
+    const root = document.documentElement;
+    const app = document.getElementById('appRoot');
+    const searchInput = document.getElementById('searchInput');
+    const grid = document.getElementById('toolsGrid');
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const sidebar = document.getElementById('appSidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const chips = Array.from(document.querySelectorAll('.chip'));
+    const overlay = document.getElementById('detailOverlay');
+    const drawer = document.getElementById('detailDrawer');
+    const detailTitle = document.getElementById('detailTitle');
+    const detailDesc = document.getElementById('detailDesc');
+    const detailMeta = document.getElementById('detailMeta');
+    const detailClose = document.getElementById('detailClose');
+    const detailOpen = document.getElementById('detailOpen');
+    const detailLoading = document.getElementById('detailLoading');
+    const detailPreview = document.getElementById('detailPreview');
 
-// 图片处理相关功能
-// document.getElementById('imageInput').addEventListener('change', function(e) {
-//     const file = e.target.files[0];
-//     if (file) {
-//         const reader = new FileReader();
-//         reader.onload = function(e) {
-//             const preview = document.getElementById('imagePreview');
-//             preview.innerHTML = `<img src="${e.target.result}" alt="预览图">`;
-//         }
-//         reader.readAsDataURL(file);
-//     }
-// });
+    // 工具路径映射（预览与完整页）
+    const TOOL_ROUTES = {
+        'Base64 编解码': { preview: 'tools/base64.html', full: 'tools/base64.html' },
+        'JSON 格式化/校验': { preview: 'tools/json.html', full: 'tools/json.html' },
+        'UUID 生成器': { preview: 'tools/uuid.html', full: 'tools/uuid.html' },
+        '哈希计算器': { preview: 'tools/hash.html', full: 'tools/hash.html' },
+        'HTTP 请求测试': { preview: 'tools/http.html', full: 'tools/http.html' },
+        '图片压缩': { preview: 'tools/image.html', full: 'tools/image.html' },
+        '二维码生成器': { preview: 'tools/qrcode.html', full: 'tools/qrcode.html' }
+    };
 
-document.getElementById('base64Encode').addEventListener('click', function() {
-    let res = base64Encode(document.getElementById('inputText').value);
-    console.log("base64Encode=" + res);
-    
-});
-document.getElementById('base64Decode').addEventListener('click', function() {
-    let rest = base64Decode(document.getElementById('inputText').value);
-    console.log("base64Decode=" + rest);
-    
-});
+    // 持久化键名
+    const STORAGE_KEYS = {
+        THEME: 'it_tools_theme',
+        FAVORITES: 'it_tools_favorites',
+        RECENT: 'it_tools_recent'
+    };
 
-function processImage(type) {
-    // 这里实现图片处理逻辑
-    console.log('处理图片:', type);
-}
-
-// 加密相关功能由下方统一的 encrypt 实现
-
-// Base64编码
-function base64Encode(str) {
-    // 使用原生btoa进行Base64编码，需先将UTF-8字符串转为Unicode字符串
-    try {
-        return btoa(unescape(encodeURIComponent(str)));
-    } catch (e) {
-        alert('Base64编码失败，请检查输入内容');
-        return '';
+    function getCards() {
+        return Array.from(grid.querySelectorAll('.tool-card'));
     }
-}
 
-// Base64解码
-function base64Decode(str) {
-    console.log("base64Decode=" + str);
-    
-    // 使用原生atob进行Base64解码，需先将Unicode字符串转为UTF-8字符串
-    try {
-        return decodeURIComponent(escape(atob(str)));
-    } catch (e) {
-        alert('Base64解码失败，请检查输入内容');
-        return '';
+    function setTheme(mode) {
+        const isLight = mode === 'light';
+        app.classList.toggle('theme-light', isLight);
+        themeIcon.textContent = isLight ? '🌞' : '🌙';
+        try { localStorage.setItem(STORAGE_KEYS.THEME, mode); } catch {}
     }
-}
 
+    function initTheme() {
+        let saved = null;
+        try { saved = localStorage.getItem(STORAGE_KEYS.THEME); } catch {}
+        if (saved) return setTheme(saved);
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setTheme(prefersDark ? 'dark' : 'light');
+    }
 
-/**
- * 使用AES加密，支持自定义偏移量（IV）
- * @param {string} plaintext 明文
- * @param {string} key 密钥
- * @param {string} iv 偏移量
- * @returns {string} 加密后的Base64字符串
- */
-function aesEncryptWithIV(plaintext, key, iv) {
-    // 依赖 window.CryptoJS（由 main.html 注入）
-    // key和iv都需要为16字节（128位），如不足需补齐
-    const cryptoJs = window.CryptoJS;
-    const keyUtf8 = cryptoJs.enc.Utf8.parse(key);
-    const ivUtf8 = cryptoJs.enc.Utf8.parse(iv);
-    const encrypted = cryptoJs.AES.encrypt(plaintext, keyUtf8, {
-        iv: ivUtf8,
-        mode: cryptoJs.mode.CBC,
-        padding: cryptoJs.pad.Pkcs7
+    function toggleTheme() {
+        const isLight = app.classList.contains('theme-light');
+        setTheme(isLight ? 'dark' : 'light');
+    }
+
+    function getFavoriteTitles() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.FAVORITES) || '[]'); } catch { return []; }
+    }
+    function saveFavoriteTitles(list) {
+        try { localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(list)); } catch {}
+    }
+
+    function setFavorite(card, active) {
+        const btn = card.querySelector('.fav-btn');
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', String(active));
+        const title = card.querySelector('.card-title').textContent.trim();
+        const current = new Set(getFavoriteTitles());
+        if (active) current.add(title); else current.delete(title);
+        saveFavoriteTitles(Array.from(current));
+    }
+
+    function initFavorites() {
+        const favs = new Set(getFavoriteTitles());
+        getCards().forEach(card => {
+            const title = card.querySelector('.card-title').textContent.trim();
+            const isFav = favs.has(title);
+            card.querySelector('.fav-btn').classList.toggle('active', isFav);
+        });
+    }
+
+    function markRecent(card) {
+        const title = card.querySelector('.card-title').textContent.trim();
+        let recent = [];
+        try { recent = JSON.parse(localStorage.getItem(STORAGE_KEYS.RECENT) || '[]'); } catch { recent = []; }
+        const filtered = recent.filter(t => t !== title);
+        filtered.unshift(title);
+        try { localStorage.setItem(STORAGE_KEYS.RECENT, JSON.stringify(filtered.slice(0, 12))); } catch {}
+    }
+
+    function filterCards() {
+        const q = (searchInput.value || '').toLowerCase().trim();
+        const activeChip = chips.find(c => c.classList.contains('active'));
+        const category = activeChip ? activeChip.getAttribute('data-filter') : 'all';
+        const favSet = new Set(getFavoriteTitles());
+        let visibleCount = 0;
+
+        getCards().forEach(card => {
+            const tags = (card.getAttribute('data-tags') || '').toLowerCase();
+            const text = card.textContent.toLowerCase();
+            const cardCategory = card.getAttribute('data-category') || 'misc';
+            const title = card.querySelector('.card-title').textContent.trim();
+
+            let matchSearch = !q || tags.includes(q) || text.includes(q);
+            let matchCategory = (category === 'all')
+                || (category === 'favorite' && favSet.has(title))
+                || (category === 'recent')
+                || (category === cardCategory);
+
+            const show = matchSearch && matchCategory;
+            card.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
+        });
+
+        grid.setAttribute('data-visible-count', String(visibleCount));
+    }
+
+    // 事件绑定
+    themeToggle.addEventListener('click', toggleTheme);
+    searchInput.addEventListener('input', filterCards);
+    sidebarToggle.addEventListener('click', () => {
+        const open = !sidebar.classList.contains('open');
+        sidebar.classList.toggle('open', open);
+        const expanded = open ? 'true' : 'false';
+        sidebarToggle.setAttribute('aria-expanded', expanded);
     });
-    return encrypted.toString();
-}
 
-// 示例：在encrypt函数中调用
-// 用法：encrypt('aes', '偏移量字符串');
-// function encrypt(type, iv = '1234567890abcdef') {
-//     const input = document.getElementById('inputText').value;
-//     let output = '';
-//     let originData = input;
-//     console.log("originData=" + originData);
-
-//     // 这里假设密钥为16位字符串，可根据实际需求修改
-//     const key = 'abcdef1234567890';
-
-//     if (type === 'aes') {
-//         output = aesEncryptWithIV(originData, key, iv);
-//     } else if (type === 'rsa') {
-//         output = '这里实现RSA加密';
-//     }
-
-//     document.getElementById('outputText').value = output;
-// }
-
-/**
- * 生成RSA密钥对（仅用于演示，实际生产环境请在后端生成并妥善保管私钥）
- * 这里只做简单演示，密钥长度为1024位
- */
-let rsaKeyPair = null;
-
-async function generateRSAKeyPair() {
-    if (window.crypto && window.crypto.subtle) {
-        // 使用Web Crypto API生成密钥对
-        rsaKeyPair = await window.crypto.subtle.generateKey(
-            {
-                name: "RSA-OAEP",
-                modulusLength: 1024,
-                publicExponent: new Uint8Array([1, 0, 1]),
-                hash: "SHA-256"
-            },
-            true,
-            ["encrypt", "decrypt"]
-        );
-    } else {
-        alert("当前浏览器不支持Web Crypto API，无法进行RSA加密。");
-    }
-}
-
-/**
- * 导出公钥为PEM格式字符串
- */
-async function exportPublicKeyPEM() {
-    if (!rsaKeyPair) {
-        await generateRSAKeyPair();
-    }
-    const spki = await window.crypto.subtle.exportKey("spki", rsaKeyPair.publicKey);
-    const b64 = window.btoa(String.fromCharCode(...new Uint8Array(spki)));
-    const pem = `-----BEGIN PUBLIC KEY-----\n${b64.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`;
-    return pem;
-}
-
-/**
- * 使用RSA公钥加密
- * @param {string} plaintext 明文
- * @returns {Promise<string>} Base64密文
- */
-async function rsaEncrypt(plaintext) {
-    if (!rsaKeyPair) {
-        await generateRSAKeyPair();
-    }
-    const encoder = new TextEncoder();
-    const data = encoder.encode(plaintext);
-    const encrypted = await window.crypto.subtle.encrypt(
-        {
-            name: "RSA-OAEP"
-        },
-        rsaKeyPair.publicKey,
-        data
-    );
-    // 转为Base64
-    return window.btoa(String.fromCharCode(...new Uint8Array(encrypted)));
-}
-
-/**
- * 使用RSA私钥解密
- * @param {string} ciphertext Base64密文
- * @returns {Promise<string>} 明文
- */
-async function rsaDecrypt(ciphertext) {
-    if (!rsaKeyPair) {
-        alert("请先进行加密操作以生成密钥对。");
-        return '';
-    }
-    const encryptedData = Uint8Array.from(window.atob(ciphertext), c => c.charCodeAt(0));
-    try {
-        const decrypted = await window.crypto.subtle.decrypt(
-            {
-                name: "RSA-OAEP"
-            },
-            rsaKeyPair.privateKey,
-            encryptedData
-        );
-        const decoder = new TextDecoder();
-        return decoder.decode(decrypted);
-    } catch (e) {
-        alert("RSA解密失败，请检查密文或密钥。");
-        return '';
-    }
-}
-
-// 扩展encrypt函数支持RSA加密
-// async function encrypt(type, iv = '1234567890abcdef') {
-//     const input = document.getElementById('inputText').value;
-//     let output = '';
-//     let originData = input;
-//     console.log("originData=" + originData);
-
-//     // 这里假设密钥为16位字符串，可根据实际需求修改
-//     const key = 'abcdef1234567890';
-
-//     if (type === 'aes') {
-//         output = aesEncryptWithIV(originData, key, iv);
-//         document.getElementById('outputText').value = output;
-//     } else if (type === 'rsa') {
-//         output = await rsaEncrypt(originData);
-//         document.getElementById('outputText').value = output;
-//     }
-// }
-
-// RSA解密按钮逻辑（可在页面添加按钮调用此函数）
-async function rsaDecryptAction() {
-    const input = document.getElementById('outputText').value;
-    const result = await rsaDecrypt(input);
-    if (result !== undefined) {
-        document.getElementById('inputText').value = result;
-    }
-}
-
-
-// 拖拽上传功能
-const dropArea = document.getElementById('imageUploadArea');
-
-if (dropArea) {
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, preventDefaults, false);
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            chips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            filterCards();
+        });
     });
-}
 
-function preventDefaults (e) {
-    e.preventDefault();
-    e.stopPropagation();
-}
-
-if (dropArea) {
-    dropArea.addEventListener('drop', handleDrop, false);
-}
-
-function handleDrop(e) {
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    
-    if (files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const preview = document.getElementById('imagePreview');
-            preview.innerHTML = `<img src="${e.target.result}" alt="预览图">`;
+    grid.addEventListener('click', (e) => {
+        const btn = e.target.closest('.fav-btn');
+        if (btn) {
+            const card = e.target.closest('.tool-card');
+            const active = !btn.classList.contains('active');
+            setFavorite(card, active);
+            return;
         }
-        reader.readAsDataURL(files[0]);
+        const open = e.target.closest('.btn-primary');
+        if (open) {
+            const card = e.target.closest('.tool-card');
+            markRecent(card);
+            openDetail(card);
+            return;
+        }
+        const card = e.target.closest('.tool-card');
+        if (card) {
+            openDetail(card);
+        }
+    });
+
+    function openDetail(card) {
+        const title = card.querySelector('.card-title').textContent.trim();
+        const desc = card.querySelector('.card-desc').textContent.trim();
+        const category = card.getAttribute('data-category') || 'misc';
+        const tags = card.getAttribute('data-tags') || '';
+
+        detailTitle.textContent = title;
+        detailDesc.textContent = desc;
+        detailMeta.textContent = `类别：${category} ｜ 标签：${tags}`;
+
+        // 预览加载
+        detailLoading.style.display = '';
+        detailPreview.style.display = 'none';
+        detailPreview.src = '';
+        const route = TOOL_ROUTES[title];
+        if (route) {
+            detailPreview.src = route.preview;
+        }
+
+        overlay.classList.add('show');
+        drawer.classList.add('show');
+        overlay.setAttribute('aria-hidden', 'false');
+        drawer.setAttribute('aria-hidden', 'false');
+        // 焦点管理
+        detailClose.focus();
+
+        detailPreview.onload = function () {
+            detailLoading.style.display = 'none';
+            detailPreview.style.display = '';
+        };
+        detailPreview.onerror = function () {
+            detailLoading.textContent = '加载失败，请稍后重试。';
+        };
     }
-}
 
-// 统一的 encrypt，支持 AES 与 RSA，并供内联按钮调用
-async function encrypt(type, iv = '1234567890abcdef') {
-    const input = document.getElementById('inputText').value;
-    let output = '';
-    const originData = input;
-    console.log("originData=" + originData);
-
-    const key = 'abcdef1234567890';
-
-    if (type === 'aes') {
-        output = aesEncryptWithIV(originData, key, iv);
-        document.getElementById('outputText').value = output;
-    } else if (type === 'rsa') {
-        output = await rsaEncrypt(originData);
-        document.getElementById('outputText').value = output;
+    function closeDetail() {
+        overlay.classList.remove('show');
+        drawer.classList.remove('show');
+        overlay.setAttribute('aria-hidden', 'true');
+        drawer.setAttribute('aria-hidden', 'true');
     }
-}
 
-// 将需要被按钮/内联事件访问的函数挂到全局
-window.encrypt = encrypt;
-window.base64Encode = base64Encode;
-window.base64Decode = base64Decode;
-window.rsaDecryptAction = rsaDecryptAction;
+    overlay.addEventListener('click', closeDetail);
+    detailClose.addEventListener('click', closeDetail);
+    detailOpen.addEventListener('click', () => {
+        const title = detailTitle.textContent.trim();
+        const route = TOOL_ROUTES[title];
+        if (route) {
+            window.open(route.full, '_blank');
+        } else {
+            alert('未配置工具页面');
+        }
+        closeDetail();
+    });
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeDetail();
+    });
+
+    // 初始化
+    initTheme();
+    initFavorites();
+    chips.find(c => c.getAttribute('data-filter') === 'all')?.classList.add('active');
+    filterCards();
+})();
+
+

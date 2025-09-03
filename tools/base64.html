@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Base64 编解码</title>
+    <style>
+        body { margin: 0; font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Microsoft Yahei", sans-serif; background: #0b0f19; color: #e6e8ee; }
+        .wrap { padding: 16px; display: grid; gap: 12px; }
+        textarea { width: 100%; min-height: 160px; border-radius: 10px; border: 1px solid #1b2336; background: #0f1422; color: #e6e8ee; padding: 10px; }
+        .row { display: flex; gap: 8px; }
+        button { height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #1b2336; background: #3b82f6; color: #fff; cursor: pointer; }
+        button.secondary { background: #111726; color: #e6e8ee; }
+        .hint { color: #a7adbd; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="row">
+            <button id="btnEncode">编码 →</button>
+            <button id="btnDecode" class="secondary">← 解码</button>
+            <button id="btnSwap" class="secondary">交换</button>
+            <span class="hint">此工具可在详情抽屉内预览</span>
+        </div>
+        <textarea id="left" placeholder="输入原文或 Base64"></textarea>
+        <textarea id="right" placeholder="结果"></textarea>
+    </div>
+    <script>
+        const left = document.getElementById('left');
+        const right = document.getElementById('right');
+        document.getElementById('btnEncode').onclick = () => {
+            try { right.value = btoa(unescape(encodeURIComponent(left.value))); } catch (e) { alert('编码失败: ' + e); }
+        };
+        document.getElementById('btnDecode').onclick = () => {
+            try { left.value = decodeURIComponent(escape(atob(right.value))); } catch (e) { alert('解码失败: ' + e); }
+        };
+        document.getElementById('btnSwap').onclick = () => {
+            const t = left.value; left.value = right.value; right.value = t;
+        };
+    </script>
+</body>
+</html>
+
+

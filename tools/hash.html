@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>哈希计算器</title>
+    <style>
+        body { margin: 0; font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Microsoft Yahei", sans-serif; background: #0b0f19; color: #e6e8ee; }
+        .wrap { padding: 16px; display: grid; gap: 12px; }
+        textarea { width: 100%; min-height: 160px; border-radius: 10px; border: 1px solid #1b2336; background: #0f1422; color: #e6e8ee; padding: 10px; }
+        .row { display: flex; gap: 8px; flex-wrap: wrap; }
+        select, input { height: 34px; border-radius: 8px; border: 1px solid #1b2336; background: #0f1422; color: #e6e8ee; padding: 0 10px; }
+        button { height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #1b2336; background: #3b82f6; color: #fff; cursor: pointer; }
+        .result { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="row">
+            <select id="algo">
+                <option value="SHA-256">SHA-256</option>
+                <option value="SHA-1">SHA-1</option>
+                <option value="MD5">MD5</option>
+            </select>
+            <button id="btnHash">计算</button>
+        </div>
+        <textarea id="plain" placeholder="输入文本"></textarea>
+        <div class="result" id="out">—</div>
+    </div>
+    <script>
+        const enc = new TextEncoder();
+        function toHex(buffer) { return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join(''); }
+        document.getElementById('btnHash').onclick = async () => {
+            const algo = document.getElementById('algo').value;
+            const text = document.getElementById('plain').value;
+            if (algo === 'MD5') { document.getElementById('out').textContent = '浏览器原生不支持 MD5 示例，使用 SHA-256'; }
+            const ab = await crypto.subtle.digest(algo === 'MD5' ? 'SHA-256' : algo, enc.encode(text));
+            document.getElementById('out').textContent = toHex(ab);
+        };
+    </script>
+</body>
+</html>
+
+

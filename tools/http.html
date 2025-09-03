@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HTTP 请求测试</title>
+    <style>
+        body { margin: 0; font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Microsoft Yahei", sans-serif; background: #0b0f19; color: #e6e8ee; }
+        .wrap { padding: 16px; display: grid; gap: 12px; }
+        input, select, textarea { width: 100%; border-radius: 10px; border: 1px solid #1b2336; background: #0f1422; color: #e6e8ee; padding: 10px; }
+        .row { display: grid; grid-template-columns: 140px 1fr 120px; gap: 8px; }
+        button { height: 40px; border-radius: 10px; border: 1px solid #1b2336; background: #3b82f6; color: #fff; cursor: pointer; }
+        pre { margin: 0; padding: 12px; background: #0f1422; border: 1px solid #1b2336; border-radius: 10px; white-space: pre-wrap; word-break: break-word; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="row">
+            <select id="method">
+                <option>GET</option>
+                <option>POST</option>
+                <option>PUT</option>
+                <option>DELETE</option>
+            </select>
+            <input id="url" placeholder="https://httpbin.org/get" />
+            <button id="send">发送</button>
+        </div>
+        <textarea id="body" placeholder="请求体（JSON）"></textarea>
+        <pre id="resp">等待请求…</pre>
+    </div>
+    <script>
+        async function send() {
+            const method = document.getElementById('method').value;
+            const url = document.getElementById('url').value;
+            const body = document.getElementById('body').value;
+            const init = { method, headers: {} };
+            if (method !== 'GET' && body) {
+                init.body = body;
+                init.headers['Content-Type'] = 'application/json';
+            }
+            try {
+                const r = await fetch(url, init);
+                const txt = await r.text();
+                document.getElementById('resp').textContent = txt;
+            } catch (e) {
+                document.getElementById('resp').textContent = '请求错误: ' + e.message;
+            }
+        }
+        document.getElementById('send').onclick = send;
+    </script>
+</body>
+</html>
+
+

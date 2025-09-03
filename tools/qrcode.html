@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>二维码生成器</title>
+    <style>
+        body { margin: 0; font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Microsoft Yahei", sans-serif; background: #0b0f19; color: #e6e8ee; }
+        .wrap { padding: 16px; display: grid; gap: 12px; }
+        input { width: 100%; height: 40px; border-radius: 10px; border: 1px solid #1b2336; background: #0f1422; color: #e6e8ee; padding: 0 10px; }
+        .row { display: grid; grid-template-columns: 1fr 140px 120px; gap: 8px; }
+        button { height: 40px; border-radius: 10px; border: 1px solid #1b2336; background: #3b82f6; color: #fff; cursor: pointer; }
+        #qr { display: grid; place-items: center; padding: 12px; border: 1px solid #1b2336; border-radius: 10px; background: #0f1422; min-height: 240px; }
+        .hint { color: #a7adbd; font-size: 12px; }
+    </style>
+    <script>
+        // 动态加载 QR 库，优先本地文件，再退化到外部 CDN
+        (function loadQrLib() {
+            const cdns = [
+                './vendor/qrcode.min.js',
+                'https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js',
+                'https://unpkg.com/qrcode/build/qrcode.min.js',
+                'https://fastly.jsdelivr.net/npm/qrcode/build/qrcode.min.js'
+            ];
+            let loaded = false;
+            function tryNext() {
+                const url = cdns.shift();
+                if (!url) return; // 放弃
+                const s = document.createElement('script');
+                s.src = url; s.async = true;
+                s.onload = function(){ loaded = true; document.dispatchEvent(new CustomEvent('qr-lib-ready')); };
+                s.onerror = tryNext;
+                document.head.appendChild(s);
+            }
+            tryNext();
+            // 超时兜底
+            setTimeout(() => { if (!loaded) document.dispatchEvent(new CustomEvent('qr-lib-failed')); }, 6000);
+        })();
+    </script>
+</head>
+<body>
+    <div class="wrap">
+        <div class="row">
+            <input id="text" placeholder="输入文本或链接">
+            <input id="size" type="number" value="256" min="128" max="1024" step="32" />
+            <button id="gen" disabled>生成二维码</button>
+        </div>
+        <div id="qr"><span class="hint" id="status">正在加载二维码库…</span></div>
+    </div>
+    <script>
+        const el = (id) => document.getElementById(id);
+        function setStatus(msg){ const s = el('status'); if (s) s.textContent = msg; }
+
+        async function generate() {
+            const value = el('text').value.trim();
+            const size = Math.max(128, Math.min(1024, parseInt(el('size').value || '256', 10)));
+            const box = el('qr'); box.innerHTML = '';
+            if (!value) { box.innerHTML = '<span class="hint">请输入有效内容</span>'; return; }
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = size; canvas.height = size;
+                if (!window.QRCode || !QRCode.toCanvas) throw new Error('QRCode 库未就绪');
+                await QRCode.toCanvas(canvas, value, { width: size, margin: 2, errorCorrectionLevel: 'M' });
+                box.appendChild(canvas);
+            } catch (e) {
+                box.innerHTML = '<span class="hint">生成失败，请检查网络或稍后重试</span>';
+            }
+        }
+        el('gen').onclick = generate;
+        el('text').addEventListener('keydown', (e)=>{ if(e.key==='Enter') generate(); });
+
+        document.addEventListener('qr-lib-ready', () => {
+            el('gen').disabled = false;
+            setStatus('库已加载，可生成二维码');
+        });
+        document.addEventListener('qr-lib-failed', () => {
+            setStatus('二维码库加载失败：请联网或将 qrcode.min.js 放入 tools/vendor/');
+        });
+    </script>
+</body>
+</html>
+
+
